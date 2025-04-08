@@ -12,14 +12,15 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 public class StudentAdapter extends RecyclerView.Adapter<StudentAdapter.StudentViewHolder> {
-    private List<Map.Entry<String, Boolean>> studentList;
+    private Map<String, List<Boolean>> studentList;
     private DatabaseReference eventRef;
 
-    public StudentAdapter(List<Map.Entry<String, Boolean>> studentList, DatabaseReference eventRef) {
+    public StudentAdapter(Map<String, List<Boolean>> studentList, DatabaseReference eventRef) {
         this.studentList = studentList;
         this.eventRef = eventRef;
     }
@@ -33,9 +34,9 @@ public class StudentAdapter extends RecyclerView.Adapter<StudentAdapter.StudentV
 
     @Override
     public void onBindViewHolder(@NonNull StudentViewHolder holder, int position) {
-        Map.Entry<String, Boolean> student = studentList.get(position);
-        String studentId = student.getKey();
-        boolean isPresent = student.getValue();
+        // Get the student ID and the list of booleans (present, otp) from the map
+        String studentId = new ArrayList<>(studentList.keySet()).get(position);
+        List<Boolean> studentStatus = studentList.get(studentId);
 
         // Fetch the student's name from Firebase
         DatabaseReference studentRef = FirebaseDatabase.getInstance().getReference().child("Students").child(studentId);
@@ -48,10 +49,17 @@ public class StudentAdapter extends RecyclerView.Adapter<StudentAdapter.StudentV
             }
         });
 
+        // Get the 'present' value from the studentStatus list and set the checkbox
+
+        boolean isPresent = studentStatus.get(0);  // First boolean is 'present'
         holder.attendanceCheckBox.setChecked(isPresent);
 
+        boolean isOtpSuccess = studentStatus.get(1);  // Second boolean is 'otp'
+        holder.otpSuccessCheckBox.setChecked(isOtpSuccess);
+
+
         holder.attendanceCheckBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            DatabaseReference studentStatusRef = eventRef.child(studentId);
+            DatabaseReference studentStatusRef = eventRef.child(studentId).child("present");
             studentStatusRef.setValue(isChecked);
         });
     }
@@ -65,11 +73,13 @@ public class StudentAdapter extends RecyclerView.Adapter<StudentAdapter.StudentV
     static class StudentViewHolder extends RecyclerView.ViewHolder {
         TextView studentNameTextView;
         CheckBox attendanceCheckBox;
+        CheckBox otpSuccessCheckBox;
 
         public StudentViewHolder(View itemView) {
             super(itemView);
             studentNameTextView = itemView.findViewById(R.id.studentNameTextView);
             attendanceCheckBox = itemView.findViewById(R.id.attendanceCheckBox);
+            otpSuccessCheckBox = itemView.findViewById(R.id.otpSuccessCheckBox);
         }
     }
 }

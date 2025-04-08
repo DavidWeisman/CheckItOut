@@ -3,8 +3,10 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
-    android:padding="8dp">
+    android:padding="8dp"
+    android:gravity="center_vertical">
 
+    <!-- Student Name -->
     <TextView
         android:id="@+id/studentNameTextView"
         android:layout_width="0dp"
@@ -13,8 +15,36 @@
         android:text="Student Name"
         android:textSize="16sp" />
 
+    <!-- Attendance Checkbox -->
     <CheckBox
         android:id="@+id/attendanceCheckBox"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
+        android:contentDescription="Attendance checkbox" />
+
+    <!-- OTP Checkbox with label -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <CheckBox
+            android:id="@+id/otpSuccessCheckBox"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:enabled="false"
+            android:buttonTint="@android:color/holo_green_dark"
+            android:contentDescription="OTP success checkbox" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="OTP"
+            android:textColor="@android:color/holo_green_dark"
+            android:textSize="14sp"
+            android:paddingStart="4dp" />
+    </LinearLayout>
+
 </LinearLayout>

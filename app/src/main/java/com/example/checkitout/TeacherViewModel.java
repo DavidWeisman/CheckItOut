@@ -86,19 +86,23 @@ public class TeacherViewModel extends AndroidViewModel {
     private void createNewEvent(DatabaseReference dateRef, String eventName, String teacherId, List<String> studentList) {
         DatabaseReference eventRef = dateRef.child(eventName);
 
-        // Add teacher ID
+        // Add teacher ID and initial empty OTP
         eventRef.child("TeacherId").setValue(teacherId);
         eventRef.child("enteredOpt").setValue("");
 
-        // Add students
+        // Add students with both "present" and "otp" fields
         DatabaseReference studentsRef = eventRef.child("Students");
         for (String studentId : studentList) {
-            studentsRef.child(studentId).setValue(false);
+            DatabaseReference studentRef = studentsRef.child(studentId);
+            studentRef.child("present").setValue(false);
+            studentRef.child("otp").setValue(false);
         }
 
+        // Notify that the event was created
         eventCreationStatus.setValue("Event created successfully");
 
         // Notify UI to open the new event
         eventCreatedLiveData.setValue(new Pair<>(dateRef.getKey(), eventName));
     }
+
 }

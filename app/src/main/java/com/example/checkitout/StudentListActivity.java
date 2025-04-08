@@ -24,6 +24,7 @@ import com.google.firebase.database.ValueEventListener;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -34,7 +35,7 @@ public class StudentListActivity extends AppCompatActivity {
     private static final int PERMISSION_REQUEST_CODE = 1;
     private DatabaseReference eventRef;
     private StudentAdapter studentAdapter;
-    private List<Map.Entry<String, Boolean>> studentList = new ArrayList<>();
+    Map<String, List<Boolean>> studentList = new HashMap<>();
     private static final int QR_SCANNER_REQUEST_CODE = 100;
 
     private Button scannerbtn;
@@ -74,8 +75,10 @@ public class StudentListActivity extends AppCompatActivity {
         loadStudents();
 
         saveAttendanceButton.setOnClickListener(v -> saveAttendance());
-        refresh.setOnClickListener(v -> startOTPMonitoring());
-
+        refresh.setOnClickListener(v -> {
+            startOTPMonitoring();  // Start OTP Monitoring
+            loadStudents();        // Load students
+        });
         scannerbtn.setOnClickListener(v -> {
             Intent intent = new Intent(StudentListActivity.this, QRScanner.class);
             startActivityForResult(intent, QR_SCANNER_REQUEST_CODE);  // Start QRScanner with a request code
@@ -116,6 +119,13 @@ public class StudentListActivity extends AppCompatActivity {
 
                 for (DataSnapshot studentSnapshot : eventSnapshot.getChildren()) {
                     String studentUID = studentSnapshot.getKey();
+
+                    // Set the OTP field to false for each student
+                    DatabaseReference studentOtpRef = FirebaseDatabase.getInstance().getReference()
+                            .child("Dates").child(date).child(eventName)
+                            .child("Students").child(studentUID).child("otp");
+
+                    studentOtpRef.setValue(false); // Reset OTP value for each student
 
                     DatabaseReference studentRef = FirebaseDatabase.getInstance().getReference()
                             .child("Students").child(studentUID);
@@ -173,34 +183,42 @@ public class StudentListActivity extends AppCompatActivity {
         eventRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot eventSnapshot) {
+                // Get the entered OTP value
                 String enteredOpt = eventSnapshot.child("enteredOpt").getValue(String.class);
                 if (enteredOpt == null || enteredOpt.isEmpty()) return;
 
+                // Get all students in the event
                 DataSnapshot studentsSnapshot = eventSnapshot.child("Students");
+
                 for (DataSnapshot studentEntry : studentsSnapshot.getChildren()) {
                     String uid = studentEntry.getKey();
 
-                    // Skip if already checked
-                    Boolean isChecked = studentEntry.getValue(Boolean.class);
-                    if (isChecked != null && isChecked) continue;
+                    // Skip if OTP is already marked as true for this student
+                    Boolean isOtpSuccess = studentEntry.child("otp").getValue(Boolean.class);
+                    if (isOtpSuccess != null && isOtpSuccess) {
+                        continue;  // Skip if OTP is already correct
+                    }
 
-                    // Get the student's correct OPT
+                    // Get the student's correct OTP from their profile
                     DatabaseReference studentRef = baseRef.child("Students").child(uid).child("opt");
                     studentRef.addListenerForSingleValueEvent(new ValueEventListener() {
                         @Override
                         public void onDataChange(@NonNull DataSnapshot optSnapshot) {
                             String correctOpt = optSnapshot.getValue(String.class);
+
+                            // Clear the 'opt' field to avoid using the same OTP again
                             optSnapshot.getRef().setValue("");
+
+                            // If the correct OTP matches the entered OTP, update the student's OTP status
                             if (correctOpt != null && correctOpt.equals(enteredOpt)) {
-                                // Mark the student's UID key under "Students" as true (representing the boolean value)
-                                eventRef.child("Students").child(uid).setValue(true);
-                                loadStudents();
+                                eventRef.child("Students").child(uid).child("otp").setValue(true);
+                                loadStudents();  // Refresh the student list or do any necessary updates
                             }
                         }
 
                         @Override
                         public void onCancelled(@NonNull DatabaseError error) {
-                            Log.e("OTPMonitor", "Failed to get opt for " + uid + ": " + error.getMessage());
+                            Log.e("OTPMonitor", "Failed to get OTP for " + uid + ": " + error.getMessage());
                         }
                     });
                 }
@@ -208,10 +226,11 @@ public class StudentListActivity extends AppCompatActivity {
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-                Log.e("OTPMonitor", "Failed to read event data: " + error.getMessage());
+                Log.e("OTPMonitor", "Failed to monitor OTP changes: " + error.getMessage());
             }
         });
     }
+
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -227,7 +246,8 @@ public class StudentListActivity extends AppCompatActivity {
                             .child(date)
                             .child(eventName)
                             .child("Students")
-                            .child(scannedUID);
+                            .child(scannedUID)
+                            .child("present");
 
                     // Update the student's status to "present" (true)
                     studentStatusRef.setValue(true);
@@ -244,7 +264,19 @@ public class StudentListActivity extends AppCompatActivity {
             if (task.isSuccessful() && task.getResult().exists()) {
                 studentList.clear();
                 for (DataSnapshot studentSnapshot : task.getResult().getChildren()) {
-                    studentList.add(new AbstractMap.SimpleEntry<>(studentSnapshot.getKey(), studentSnapshot.getValue(Boolean.class)));
+                    String studentId = studentSnapshot.getKey();
+
+                    // Extract present and otp values from the student data
+                    boolean present = Boolean.TRUE.equals(studentSnapshot.child("present").getValue(Boolean.class));
+                    boolean otp = Boolean.TRUE.equals(studentSnapshot.child("otp").getValue(Boolean.class));
+
+                    // Create a list of booleans (present, otp)
+                    List<Boolean> studentStatus = new ArrayList<>();
+                    studentStatus.add(present);
+                    studentStatus.add(otp);
+
+                    // Add studentId and their status list to the map
+                    studentList.put(studentId, studentStatus);
                 }
 
                 studentRecyclerView.setLayoutManager(new LinearLayoutManager(this));
