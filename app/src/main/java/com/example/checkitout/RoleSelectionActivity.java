@@ -16,11 +16,19 @@ public class RoleSelectionActivity extends AppCompatActivity {
 
         Button btnStudent = findViewById(R.id.btnStudent);
         Button btnTeacher = findViewById(R.id.btnTeacher);
+        Button btnTeacherRegistration =  findViewById(R.id.btnTeacherRegistration);
 
         btnStudent.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 startActivity(new Intent(RoleSelectionActivity.this, StudentLoginActivity.class));
+            }
+        });
+
+        btnTeacherRegistration.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(RoleSelectionActivity.this, TeacherRegistrationActivity.class));
             }
         });
 
