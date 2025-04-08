@@ -1,0 +1,49 @@
+{
+  "project_info": {
+    "project_number": "1007271361948",
+    "firebase_url": "https://attendanceapp3245-default-rtdb.firebaseio.com",
+    "project_id": "attendanceapp3245",
+    "storage_bucket": "attendanceapp3245.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1007271361948:android:f9edb64925e8a41c499c59",
+        "android_client_info": {
+          "package_name": "com.example.attendanceapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBqvCs2BrKQ7-SSlVvAG-DvI0oOZ83fb8c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1007271361948:android:7c4b72168c93d3da499c59",
+        "android_client_info": {
+          "package_name": "com.example.checkitout"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBqvCs2BrKQ7-SSlVvAG-DvI0oOZ83fb8c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

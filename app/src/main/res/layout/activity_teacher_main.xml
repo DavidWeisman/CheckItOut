@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    tools:context=".TeacherMainActivity">
+
+
+    <EditText
+        android:id="@+id/eventNameEditText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Enter event name"
+        android:inputType="text"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Add Event Button -->
+    <Button
+        android:id="@+id/addEventButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Add Event"
+        android:textSize="16sp" />
+
+    <Button
+        android:id="@+id/openEventButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Open Existing Event"
+        android:layout_marginTop="10dp"/>
+
+</LinearLayout>
