@@ -74,7 +74,8 @@ public class StudentListActivity extends AppCompatActivity {
         // Load students
         loadStudents();
 
-        saveAttendanceButton.setOnClickListener(v -> saveAttendance());
+        //saveAttendanceButton.setOnClickListener(v -> saveAttendance());
+
         refresh.setOnClickListener(v -> {
             startOTPMonitoring();  // Start OTP Monitoring
             loadStudents();        // Load students
@@ -83,6 +84,14 @@ public class StudentListActivity extends AppCompatActivity {
             Intent intent = new Intent(StudentListActivity.this, QRScanner.class);
             startActivityForResult(intent, QR_SCANNER_REQUEST_CODE);  // Start QRScanner with a request code
         });
+
+        saveAttendanceButton.setOnClickListener(v -> {
+            Intent intent = new Intent(StudentListActivity.this, SendAttendanceReportActivity.class);
+            intent.putExtra("date", date);
+            intent.putExtra("eventName", eventName);
+            startActivity(intent);
+        });
+
 
         OTPbtn.setOnClickListener(v -> sendOTP());
     }
