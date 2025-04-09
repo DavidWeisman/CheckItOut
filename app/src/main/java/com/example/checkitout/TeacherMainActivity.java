@@ -11,6 +11,8 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.Observer;
 
+import com.google.firebase.auth.FirebaseAuth;
+
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -28,6 +30,7 @@ public class TeacherMainActivity extends AppCompatActivity {
     private String eventName;
     private String currentDate;
     private ArrayList<String> selectedStudentIds;
+    private String teacherId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,6 +44,8 @@ public class TeacherMainActivity extends AppCompatActivity {
         eventNameEditText = findViewById(R.id.eventNameEditText);
         addEventButton = findViewById(R.id.addEventButton);
         openEventButton = findViewById(R.id.openEventButton);
+        FirebaseAuth mAuth = FirebaseAuth.getInstance();
+        teacherId = mAuth.getCurrentUser() != null ? mAuth.getCurrentUser().getUid() : "";
 
         // Observe LiveData for event creation and student addition statuses
         teacherViewModel.getEventCreationStatus().observe(this, new Observer<String>() {
@@ -80,7 +85,7 @@ public class TeacherMainActivity extends AppCompatActivity {
             selectedStudentIds = data.getStringArrayListExtra("syncedStudents");
             if (selectedStudentIds != null && !selectedStudentIds.isEmpty()) {
                 // Proceed with adding the event only if students are synced
-                teacherViewModel.addEvent(eventName, selectedStudentIds, currentDate);
+                teacherViewModel.addEvent(eventName, selectedStudentIds, currentDate, teacherId);
             } else {
                 Toast.makeText(this, "No students selected", Toast.LENGTH_SHORT).show();
             }
