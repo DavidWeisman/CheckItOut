@@ -13,6 +13,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -94,7 +95,56 @@ public class StudentListActivity extends AppCompatActivity {
 
 
         OTPbtn.setOnClickListener(v -> sendOTP());
+
+        ItemTouchHelper.SimpleCallback simpleCallback = new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT) {
+            @Override
+            public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
+                return false; // We are not supporting item move
+            }
+
+            @Override
+            public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+                // Get the position of the item that was swiped
+                int position = viewHolder.getAdapterPosition();
+
+                // Get the student UID from the adapter's list (make sure the adapter stores the UID)
+                String studentUID = studentAdapter.getStudentUID(position);
+
+                if (studentUID != null) {
+                    // Call the deleteStudentData method to remove the student from Firebase
+                    deleteStudentData(studentUID);
+                }
+
+                // Call the deleteStudent method to remove the student from the list
+                studentAdapter.deleteStudent(position);
+            }
+        };
+
+        // Attach the ItemTouchHelper to the RecyclerView
+        ItemTouchHelper itemTouchHelper = new ItemTouchHelper(simpleCallback);
+        itemTouchHelper.attachToRecyclerView(studentRecyclerView);
     }
+
+    // Method to delete the student's data from Firebase
+    private void deleteStudentData(String studentUID) {
+        // Firebase reference to the specific student data
+        DatabaseReference studentRef = eventRef.child(studentUID);
+
+        // Remove the student data from Firebase
+        studentRef.removeValue()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        Toast.makeText(StudentListActivity.this, "Student data deleted successfully", Toast.LENGTH_SHORT).show();
+                        loadStudents();  // Reload the students list after deletion
+                    } else {
+                        Toast.makeText(StudentListActivity.this, "Error deleting student data", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(StudentListActivity.this, "Failed to delete student data: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+    }
+
 
     private void sendOTP(){
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {

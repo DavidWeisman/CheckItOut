@@ -89,12 +89,25 @@ public class StudentAdapter extends RecyclerView.Adapter<StudentAdapter.StudentV
         });
     }
 
-
+    public String getStudentUID(int position) {
+        // Assuming you have a List<Map<String, Object>> or something similar in your adapter
+        // Modify this to match the structure you're using to hold student data
+        Map.Entry<String, List<Boolean>> studentEntry = (Map.Entry<String, List<Boolean>>) studentList.entrySet().toArray()[position];
+        return studentEntry.getKey();  // This returns the studentUID
+    }
 
     @Override
     public int getItemCount() {
         return studentList.size();
     }
+
+    // Method to delete a student
+    public void deleteStudent(int position) {
+        String studentId = new ArrayList<>(studentList.keySet()).get(position);
+        studentList.remove(studentId);
+        notifyItemRemoved(position);
+    }
+
 
     static class StudentViewHolder extends RecyclerView.ViewHolder {
         TextView studentNameTextView;
