@@ -41,13 +41,12 @@ public class TeacherViewModel extends AndroidViewModel {
         return eventCreatedLiveData;
     }
 
-    public void addEvent(String eventName, List<String> studentList, String currentDate) {
+    public void addEvent(String eventName, List<String> studentList, String currentDate, String teacherId) {
         if (eventName.isEmpty()) {
             eventCreationStatus.setValue("Event name is required");
             return;
         }
 
-        String teacherId = mAuth.getCurrentUser() != null ? mAuth.getCurrentUser().getUid() : "";
         if (teacherId.isEmpty()) {
             eventCreationStatus.setValue("Authentication error");
             return;
