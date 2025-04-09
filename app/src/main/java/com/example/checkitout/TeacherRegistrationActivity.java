@@ -16,7 +16,10 @@ import com.google.firebase.database.FirebaseDatabase;
 
 public class TeacherRegistrationActivity extends AppCompatActivity {
 
-    private EditText emailEditText, passwordEditText;
+    private EditText emailEditText;
+    private EditText passwordEditText;
+
+    private EditText fullName;
     private Button registerButton;
 
     private FirebaseAuth auth;
@@ -29,6 +32,7 @@ public class TeacherRegistrationActivity extends AppCompatActivity {
         auth = FirebaseAuth.getInstance();
 
         emailEditText = findViewById(R.id.emailEditText);
+        fullName = findViewById(R.id.fullName);
         passwordEditText = findViewById(R.id.passwordEditText);
         registerButton = findViewById(R.id.registerButton);
 
@@ -38,9 +42,10 @@ public class TeacherRegistrationActivity extends AppCompatActivity {
     private void registerTeacher() {
         String email = emailEditText.getText().toString().trim();
         String password = passwordEditText.getText().toString().trim();
+        String name = fullName.getText().toString().trim();
 
-        if (TextUtils.isEmpty(email) || TextUtils.isEmpty(password)) {
-            Toast.makeText(this, "Please enter email and password", Toast.LENGTH_SHORT).show();
+        if (TextUtils.isEmpty(email) || TextUtils.isEmpty(password) || TextUtils.isEmpty(name) ) {
+            Toast.makeText(this, "Please enter email, full name and password", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -57,7 +62,7 @@ public class TeacherRegistrationActivity extends AppCompatActivity {
                             String uid = user.getUid();
                             FirebaseDatabase.getInstance().getReference("Teachers")
                                     .child(uid)
-                                    .setValue(new Teacher(email, "teacher"))
+                                    .setValue(new Teacher(email, "teacher", name))
                                     .addOnCompleteListener(dbTask -> {
                                         if (dbTask.isSuccessful()) {
                                             Toast.makeText(this, "Registration successful", Toast.LENGTH_SHORT).show();
@@ -79,14 +84,16 @@ public class TeacherRegistrationActivity extends AppCompatActivity {
     public static class Teacher {
         public String email;
         public String role;
+        public String name;
 
         public Teacher() {
             // Required for Firebase
         }
 
-        public Teacher(String email, String role) {
+        public Teacher(String email, String role, String name) {
             this.email = email;
             this.role = role;
+            this.name = name;
         }
     }
 }
