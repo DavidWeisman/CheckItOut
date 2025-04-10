@@ -181,7 +181,11 @@ public class StudentSyncActivity extends AppCompatActivity {
 
                     // Decrement the pendingWrites counter
                     if (pendingWrites.decrementAndGet() == 0) {
-                        getStudentUIDsFromEmails(); // All student data is processed, now fetch UIDs
+                        Intent resultIntent = new Intent();
+                        resultIntent.putStringArrayListExtra("syncedStudents", selectedStudentIds);
+                        setResult(RESULT_OK, resultIntent);
+                        finish();
+                        //getStudentUIDsFromEmails(); // All student data is processed, now fetch UIDs
                     }
                 }
 
@@ -210,7 +214,11 @@ public class StudentSyncActivity extends AppCompatActivity {
 
                 // Decrement the pendingWrites counter
                 if (pendingWrites.decrementAndGet() == 0) {
-                    getStudentUIDsFromEmails(); // All student data is processed, now fetch UIDs
+                    Intent resultIntent = new Intent();
+                    resultIntent.putStringArrayListExtra("syncedStudents", selectedStudentIds);
+                    setResult(RESULT_OK, resultIntent);
+                    finish();
+                    //getStudentUIDsFromEmails(); // All student data is processed, now fetch UIDs
                 }
             });
         }
