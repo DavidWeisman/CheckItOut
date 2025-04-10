@@ -3,6 +3,7 @@ package com.example.checkitout;
 import android.app.Application;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
@@ -17,16 +18,13 @@ import com.google.firebase.database.ValueEventListener;
 
 public class StudentViewModel extends AndroidViewModel {
 
-    private FirebaseAuth mAuth;
-    private FirebaseDatabase mDatabase;
-    private String studentId;
-
+    private final FirebaseAuth mAuth = FirebaseAuth.getInstance();
+    private final FirebaseDatabase mDatabase = FirebaseDatabase.getInstance();
     private MutableLiveData<String> studentName = new MutableLiveData<>();
+    private String studentId;
 
     public StudentViewModel(Application application) {
         super(application);
-        mAuth = FirebaseAuth.getInstance();
-        mDatabase = FirebaseDatabase.getInstance();
     }
 
     public LiveData<String> getStudentName() {
@@ -35,40 +33,50 @@ public class StudentViewModel extends AndroidViewModel {
 
     public void loadStudentData() {
         FirebaseUser currentUser = mAuth.getCurrentUser();
+
         if (currentUser == null) {
-            // Handle user not logged in
-            Toast.makeText(getApplication(), "User not logged in!", Toast.LENGTH_SHORT).show();
+            showToast("User not logged in!");
             return;
         }
 
         studentId = currentUser.getUid();
         DatabaseReference userRef = mDatabase.getReference("Students").child(studentId);
+
         userRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 if (dataSnapshot.exists()) {
                     String name = dataSnapshot.child("name").getValue(String.class);
-                    studentName.setValue(name);  // Set the student's name
+                    studentName.setValue(name);
                 } else {
-                    Toast.makeText(getApplication(), "Student not found", Toast.LENGTH_SHORT).show();
+                    showToast("Student not found");
                 }
             }
 
             @Override
-            public void onCancelled(DatabaseError databaseError) {
-                Toast.makeText(getApplication(), "Error loading data: " + databaseError.getMessage(), Toast.LENGTH_SHORT).show();
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                showToast("Error loading data: " + databaseError.getMessage());
             }
         });
     }
 
     public void setOtp(String otp) {
+        if (studentId == null) {
+            showToast("User ID not available");
+            return;
+        }
+
         DatabaseReference userRef = mDatabase.getReference("Students").child(studentId);
         userRef.child("opt").setValue(otp).addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
-                Toast.makeText(getApplication(), "OPT set successfully", Toast.LENGTH_SHORT).show();
+                showToast("OTP set successfully");
             } else {
-                Toast.makeText(getApplication(), "Failed to set OPT", Toast.LENGTH_SHORT).show();
+                showToast("Failed to set OTP");
             }
         });
+    }
+
+    private void showToast(String message) {
+        Toast.makeText(getApplication(), message, Toast.LENGTH_SHORT).show();
     }
 }

@@ -1,5 +1,6 @@
 package com.example.checkitout;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
@@ -18,36 +19,31 @@ public class StudentMainActivity extends AppCompatActivity {
     private Button applybtn;
     private EditText otpEditText;
 
-    private StudentViewModel studentViewModel;  // ViewModel for handling Firebase data
+    private StudentViewModel studentViewModel;
 
+    @SuppressLint("SetTextI18n")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_student_main);
 
-        // Initialize UI components
         studentNameTextView = findViewById(R.id.studentName);
         showQrbrn = findViewById(R.id.showQrbrn);
         applybtn = findViewById(R.id.applybtn);
         otpEditText = findViewById(R.id.otpEditText);
 
-        // Initialize ViewModel
         studentViewModel = new ViewModelProvider(this).get(StudentViewModel.class);
 
-        // Observe changes in student data
         studentViewModel.getStudentName().observe(this, name -> {
             if (name != null) {
                 studentNameTextView.setText("Welcome, " + name);
             }
         });
 
-        // Get current user
         studentViewModel.loadStudentData();
 
-        // QR Button click listener
         showQrbrn.setOnClickListener(v -> startActivity(new Intent(StudentMainActivity.this, StudentQR.class)));
 
-        // Apply OTP button click listener
         applybtn.setOnClickListener(v -> {
             String otp = otpEditText.getText().toString();
             studentViewModel.setOtp(otp);
