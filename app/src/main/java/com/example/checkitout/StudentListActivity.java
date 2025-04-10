@@ -9,6 +9,7 @@ import android.util.Log;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -17,305 +18,242 @@ import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.database.*;
 
-import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 
 public class StudentListActivity extends AppCompatActivity {
     private RecyclerView studentRecyclerView;
-    private Button saveAttendanceButton;
+    private Button saveAttendanceButton, scannerBtn, otpBtn, refreshBtn;
+    private TextView eventTitleTextView;
     private static final int PERMISSION_REQUEST_CODE = 1;
-    private DatabaseReference eventRef;
-    private StudentAdapter studentAdapter;
-    Map<String, List<Boolean>> studentList = new HashMap<>();
     private static final int QR_SCANNER_REQUEST_CODE = 100;
-
-    private Button scannerbtn;
+    private DatabaseReference eventRef;
     private FirebaseDatabase mDatabase;
-
+    private StudentAdapter studentAdapter;
+    private final Map<String, List<Boolean>> studentList = new HashMap<>();
     private String date;
     private String eventName;
-    private Button OTPbtn;
-    private Button refresh;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_student_list);
 
-        TextView eventTitleTextView = findViewById(R.id.eventTitleTextView);
+        initializeUI();
+        getIntentExtras();
+        setupEventReference();
+        setupRecyclerView();
+        setupListeners();
+        loadStudents();
+    }
+
+    private void initializeUI() {
+        eventTitleTextView = findViewById(R.id.eventTitleTextView);
         studentRecyclerView = findViewById(R.id.studentRecyclerView);
         saveAttendanceButton = findViewById(R.id.saveAttendanceButton);
-        scannerbtn = findViewById(R.id.scannerbtn);
-        OTPbtn = findViewById(R.id.OTPbtn);
-        refresh = findViewById(R.id.refresh);
+        scannerBtn = findViewById(R.id.scannerbtn);
+        otpBtn = findViewById(R.id.OTPbtn);
+        refreshBtn = findViewById(R.id.refresh);
+    }
 
-        // Get event details from intent
+    private void getIntentExtras() {
         date = getIntent().getStringExtra("date");
         eventName = getIntent().getStringExtra("eventName");
 
         if (date == null || eventName == null) {
             Toast.makeText(this, "Error loading event", Toast.LENGTH_SHORT).show();
             finish();
-            return;
+        } else {
+            eventTitleTextView.setText(eventName);
         }
+    }
 
-        eventTitleTextView.setText(eventName);
-        eventRef = FirebaseDatabase.getInstance().getReference().child("Dates").child(date).child(eventName).child("Students");
+    private void setupEventReference() {
+        mDatabase = FirebaseDatabase.getInstance();
+        eventRef = mDatabase.getReference().child("Dates").child(date).child(eventName).child("Students");
+    }
 
-        // Load students
-        loadStudents();
+    private void setupRecyclerView() {
+        studentRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        ItemTouchHelper itemTouchHelper = new ItemTouchHelper(getSwipeCallback());
+        itemTouchHelper.attachToRecyclerView(studentRecyclerView);
+    }
 
-        //saveAttendanceButton.setOnClickListener(v -> saveAttendance());
+    private ItemTouchHelper.SimpleCallback getSwipeCallback() {
+        return new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT) {
+            @Override public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
+                return false;
+            }
 
-        refresh.setOnClickListener(v -> {
-            startOTPMonitoring();  // Start OTP Monitoring
-            loadStudents();        // Load students
+            @Override public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+                int position = viewHolder.getAdapterPosition();
+                String studentUID = studentAdapter.getStudentUID(position);
+                if (studentUID != null) {
+                    deleteStudentData(studentUID);
+                    studentAdapter.deleteStudent(position);
+                }
+            }
+        };
+    }
+    private void setupListeners() {
+        refreshBtn.setOnClickListener(v -> {
+            startOTPMonitoring();
+            loadStudents();
         });
-        scannerbtn.setOnClickListener(v -> {
-            Intent intent = new Intent(StudentListActivity.this, QRScanner.class);
-            startActivityForResult(intent, QR_SCANNER_REQUEST_CODE);  // Start QRScanner with a request code
+
+        scannerBtn.setOnClickListener(v -> {
+            Intent intent = new Intent(this, QRScanner.class);
+            startActivityForResult(intent, QR_SCANNER_REQUEST_CODE);
         });
 
         saveAttendanceButton.setOnClickListener(v -> {
-            Intent intent = new Intent(StudentListActivity.this, SendAttendanceReportActivity.class);
+            Intent intent = new Intent(this, SendAttendanceReportActivity.class);
             intent.putExtra("date", date);
             intent.putExtra("eventName", eventName);
             startActivity(intent);
         });
 
-
-        OTPbtn.setOnClickListener(v -> sendOTP());
-
-        ItemTouchHelper.SimpleCallback simpleCallback = new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT) {
-            @Override
-            public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
-                return false; // We are not supporting item move
-            }
-
-            @Override
-            public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
-                // Get the position of the item that was swiped
-                int position = viewHolder.getAdapterPosition();
-
-                // Get the student UID from the adapter's list (make sure the adapter stores the UID)
-                String studentUID = studentAdapter.getStudentUID(position);
-
-                if (studentUID != null) {
-                    // Call the deleteStudentData method to remove the student from Firebase
-                    deleteStudentData(studentUID);
-                }
-
-                // Call the deleteStudent method to remove the student from the list
-                studentAdapter.deleteStudent(position);
-            }
-        };
-
-        // Attach the ItemTouchHelper to the RecyclerView
-        ItemTouchHelper itemTouchHelper = new ItemTouchHelper(simpleCallback);
-        itemTouchHelper.attachToRecyclerView(studentRecyclerView);
+        otpBtn.setOnClickListener(v -> requestSmsPermissionOrSend());
     }
 
-    // Method to delete the student's data from Firebase
-    private void deleteStudentData(String studentUID) {
-        // Firebase reference to the specific student data
-        DatabaseReference studentRef = eventRef.child(studentUID);
-
-        // Remove the student data from Firebase
-        studentRef.removeValue()
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        Toast.makeText(StudentListActivity.this, "Student data deleted successfully", Toast.LENGTH_SHORT).show();
-                        loadStudents();  // Reload the students list after deletion
-                    } else {
-                        Toast.makeText(StudentListActivity.this, "Error deleting student data", Toast.LENGTH_SHORT).show();
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(StudentListActivity.this, "Failed to delete student data: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                });
-    }
-
-
-    private void sendOTP(){
+    private void requestSmsPermissionOrSend() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.SEND_SMS}, PERMISSION_REQUEST_CODE);
         } else {
-            sendOPTS();
+            sendOTPsToStudents();
         }
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == PERMISSION_REQUEST_CODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                sendOPTS();
-            }
+        if (requestCode == PERMISSION_REQUEST_CODE && grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            sendOTPsToStudents();
         }
     }
 
-    private void sendOPTS() {
-        DatabaseReference eventRef = FirebaseDatabase.getInstance().getReference()
-                .child("Dates").child(date).child(eventName).child("Students");
-
+    private void sendOTPsToStudents() {
         eventRef.addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot eventSnapshot) {
-                if (!eventSnapshot.exists()) {
-                    Toast.makeText(StudentListActivity.this, "No students found for this event", Toast.LENGTH_SHORT).show();
+            @Override public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (!snapshot.exists()) {
+                    Toast.makeText(StudentListActivity.this, "No students found", Toast.LENGTH_SHORT).show();
                     return;
                 }
 
-                for (DataSnapshot studentSnapshot : eventSnapshot.getChildren()) {
-                    String studentUID = studentSnapshot.getKey();
+                String otp = String.format("%04d", new Random().nextInt(10000));
+                mDatabase.getReference().child("Dates").child(date).child(eventName).child("enteredOpt").setValue(otp);
 
-                    // Set the OTP field to false for each student
-                    DatabaseReference studentOtpRef = FirebaseDatabase.getInstance().getReference()
-                            .child("Dates").child(date).child(eventName)
-                            .child("Students").child(studentUID).child("otp");
+                for (DataSnapshot studentSnapshot : snapshot.getChildren()) {
+                    String uid = studentSnapshot.getKey();
+                    if (uid == null) continue;
 
-                    studentOtpRef.setValue(false); // Reset OTP value for each student
-
-                    DatabaseReference studentRef = FirebaseDatabase.getInstance().getReference()
-                            .child("Students").child(studentUID);
-
-                    studentRef.addListenerForSingleValueEvent(new ValueEventListener() {
-                        @Override
-                        public void onDataChange(@NonNull DataSnapshot studentData) {
-                            if (studentData.exists()) {
-                                String phoneNumber = studentData.child("phoneNumber").getValue(String.class);
-                                if (phoneNumber != null && !phoneNumber.isEmpty()) {
-                                    String otp = String.format("%04d", new Random().nextInt(10000));
-
-                                    DatabaseReference otpRef = FirebaseDatabase.getInstance().getReference()
-                                            .child("Dates").child(date).child(eventName)
-                                            .child("enteredOpt");
-
-                                    otpRef.setValue(otp);
-
-                                    // Send SMS
-                                    sendSms(phoneNumber, otp);
-                                } else {
-                                    Toast.makeText(StudentListActivity.this, "Missing phone number for student " + studentUID, Toast.LENGTH_SHORT).show();
-                                }
-                            }
-                        }
-
-                        @Override
-                        public void onCancelled(@NonNull DatabaseError error) {
-                            Toast.makeText(StudentListActivity.this, "Error fetching student: " + error.getMessage(), Toast.LENGTH_SHORT).show();
-                        }
-                    });
+                    resetStudentOtpStatus(uid);
+                    fetchAndSendSmsToStudent(uid, otp);
                 }
             }
 
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-                Toast.makeText(StudentListActivity.this, "Error loading event students: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+            @Override public void onCancelled(@NonNull DatabaseError error) {
+                Toast.makeText(StudentListActivity.this, "Error: " + error.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
 
-    private void sendSms(String phoneNumber, String otp) {
+    private void resetStudentOtpStatus(String uid) {
+        mDatabase.getReference()
+                .child("Dates").child(date).child(eventName).child("Students")
+                .child(uid).child("otp").setValue(false);
+    }
+
+    private void fetchAndSendSmsToStudent(String uid, String otp) {
+        mDatabase.getReference().child("Students").child(uid)
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        String phone = snapshot.child("phoneNumber").getValue(String.class);
+                        if (phone != null && !phone.isEmpty()) {
+                            sendSms(phone, otp);
+                        } else {
+                            Toast.makeText(StudentListActivity.this, "Missing phone number for " + uid, Toast.LENGTH_SHORT).show();
+                        }
+                    }
+
+                    @Override public void onCancelled(@NonNull DatabaseError error) {
+                        Toast.makeText(StudentListActivity.this, "Error: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    private void sendSms(String phone, String otp) {
         try {
             SmsManager smsManager = SmsManager.getDefault();
-            smsManager.sendTextMessage(phoneNumber, null, "Your OTP is: " + otp, null, null);
+            smsManager.sendTextMessage(phone, null, "Your OTP is: " + otp, null, null);
         } catch (Exception e) {
-            Toast.makeText(StudentListActivity.this, "Failed to send SMS to " + phoneNumber + ": " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Failed to send SMS to " + phone + ": " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 
     private void startOTPMonitoring() {
-        DatabaseReference baseRef = FirebaseDatabase.getInstance().getReference();
-        DatabaseReference eventRef = baseRef.child("Dates").child(date).child(eventName);
+        DatabaseReference baseRef = mDatabase.getReference();
+        DatabaseReference currentEventRef = baseRef.child("Dates").child(date).child(eventName);
 
-        eventRef.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot eventSnapshot) {
-                // Get the entered OTP value
-                String enteredOpt = eventSnapshot.child("enteredOpt").getValue(String.class);
-                if (enteredOpt == null || enteredOpt.isEmpty()) return;
+        currentEventRef.addValueEventListener(new ValueEventListener() {
+            @Override public void onDataChange(@NonNull DataSnapshot snapshot) {
+                String enteredOtp = snapshot.child("enteredOpt").getValue(String.class);
+                if (enteredOtp == null || enteredOtp.isEmpty()) return;
 
-                // Get all students in the event
-                DataSnapshot studentsSnapshot = eventSnapshot.child("Students");
+                for (DataSnapshot student : snapshot.child("Students").getChildren()) {
+                    String uid = student.getKey();
+                    if (uid == null) continue;
 
-                for (DataSnapshot studentEntry : studentsSnapshot.getChildren()) {
-                    String uid = studentEntry.getKey();
+                    Boolean otpValid = student.child("otp").getValue(Boolean.class);
+                    if (otpValid != null && otpValid) continue;
 
-                    // Skip if OTP is already marked as true for this student
-                    Boolean isOtpSuccess = studentEntry.child("otp").getValue(Boolean.class);
-                    if (isOtpSuccess != null && isOtpSuccess) {
-                        continue;  // Skip if OTP is already correct
-                    }
-
-                    // Get the student's correct OTP from their profile
-                    DatabaseReference studentRef = baseRef.child("Students").child(uid).child("opt");
-                    studentRef.addListenerForSingleValueEvent(new ValueEventListener() {
-                        @Override
-                        public void onDataChange(@NonNull DataSnapshot optSnapshot) {
-                            String correctOpt = optSnapshot.getValue(String.class);
-
-                            // Clear the 'opt' field to avoid using the same OTP again
+                    DatabaseReference optRef = baseRef.child("Students").child(uid).child("opt");
+                    optRef.addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override public void onDataChange(@NonNull DataSnapshot optSnapshot) {
+                            String correctOtp = optSnapshot.getValue(String.class);
                             optSnapshot.getRef().setValue("");
 
-                            // If the correct OTP matches the entered OTP, update the student's OTP status
-                            if (correctOpt != null && correctOpt.equals(enteredOpt)) {
-                                eventRef.child("Students").child(uid).child("otp").setValue(true);
-                                loadStudents();  // Refresh the student list or do any necessary updates
+                            if (enteredOtp.equals(correctOtp)) {
+                                currentEventRef.child("Students").child(uid).child("otp").setValue(true);
+                                loadStudents();
                             }
                         }
 
-                        @Override
-                        public void onCancelled(@NonNull DatabaseError error) {
-                            Log.e("OTPMonitor", "Failed to get OTP for " + uid + ": " + error.getMessage());
+                        @Override public void onCancelled(@NonNull DatabaseError error) {
+                            Log.e("OTPMonitor", "Failed to read OTP for " + uid + ": " + error.getMessage());
                         }
                     });
                 }
             }
 
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-                Log.e("OTPMonitor", "Failed to monitor OTP changes: " + error.getMessage());
+            @Override public void onCancelled(@NonNull DatabaseError error) {
+                Log.e("OTPMonitor", "OTP monitoring error: " + error.getMessage());
             }
         });
     }
 
-
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-
-        if (requestCode == QR_SCANNER_REQUEST_CODE && resultCode == RESULT_OK) {
-            if (data != null) {
-                String scannedUID = data.getStringExtra("QR_RESULT");
-
-                if (scannedUID != null && eventName != null && date != null) {
-                    DatabaseReference databaseRef = FirebaseDatabase.getInstance().getReference();
-                    DatabaseReference studentStatusRef = databaseRef.child("Dates")
-                            .child(date)
-                            .child(eventName)
-                            .child("Students")
-                            .child(scannedUID)
-                            .child("present");
-
-                    // Update the student's status to "present" (true)
-                    studentStatusRef.setValue(true);
-
-                    Toast.makeText(this, "Student marked as present!", Toast.LENGTH_SHORT).show();
-                    loadStudents();
-                }
+        if (requestCode == QR_SCANNER_REQUEST_CODE && resultCode == RESULT_OK && data != null) {
+            String scannedUID = data.getStringExtra("QR_RESULT");
+            if (scannedUID != null) {
+                markStudentPresent(scannedUID);
             }
         }
+        super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    private void markStudentPresent(String uid) {
+        DatabaseReference presentRef = mDatabase.getReference()
+                .child("Dates").child(date).child(eventName).child("Students").child(uid).child("present");
+
+        presentRef.setValue(true).addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                Toast.makeText(this, "Student marked present!", Toast.LENGTH_SHORT).show();
+                loadStudents();
+            }
+        });
     }
 
     private void loadStudents() {
@@ -324,21 +262,12 @@ public class StudentListActivity extends AppCompatActivity {
                 studentList.clear();
                 for (DataSnapshot studentSnapshot : task.getResult().getChildren()) {
                     String studentId = studentSnapshot.getKey();
-
-                    // Extract present and otp values from the student data
                     boolean present = Boolean.TRUE.equals(studentSnapshot.child("present").getValue(Boolean.class));
                     boolean otp = Boolean.TRUE.equals(studentSnapshot.child("otp").getValue(Boolean.class));
 
-                    // Create a list of booleans (present, otp)
-                    List<Boolean> studentStatus = new ArrayList<>();
-                    studentStatus.add(present);
-                    studentStatus.add(otp);
-
-                    // Add studentId and their status list to the map
-                    studentList.put(studentId, studentStatus);
+                    studentList.put(studentId, Arrays.asList(present, otp));
                 }
 
-                studentRecyclerView.setLayoutManager(new LinearLayoutManager(this));
                 studentAdapter = new StudentAdapter(studentList, eventRef);
                 studentRecyclerView.setAdapter(studentAdapter);
             } else {
@@ -347,8 +276,14 @@ public class StudentListActivity extends AppCompatActivity {
         });
     }
 
-    private void saveAttendance() {
-        Toast.makeText(this, "Attendance saved successfully!", Toast.LENGTH_SHORT).show();
-        finish();  // Close the activity after saving
+    private void deleteStudentData(String studentUID) {
+        eventRef.child(studentUID).removeValue().addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                Toast.makeText(this, "Student removed", Toast.LENGTH_SHORT).show();
+                loadStudents();
+            } else {
+                Toast.makeText(this, "Failed to delete student", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 }
