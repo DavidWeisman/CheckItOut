@@ -19,10 +19,11 @@ import com.google.firebase.database.ValueEventListener;
 
 public class StudentLoginActivity extends AppCompatActivity {
 
-    private EditText usernameField, passwordField;
+    private EditText usernameField;
+    private EditText passwordField;
     private Button loginButton;
     private FirebaseAuth mAuth;
-    private DatabaseReference databaseReference;
+    private DatabaseReference studentsRef;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,52 +35,63 @@ public class StudentLoginActivity extends AppCompatActivity {
         loginButton = findViewById(R.id.studentLoginButton);
 
         mAuth = FirebaseAuth.getInstance();
-        databaseReference = FirebaseDatabase.getInstance().getReference("Students");
+        studentsRef = FirebaseDatabase.getInstance().getReference("Students");
 
-        loginButton.setOnClickListener(v -> {
-            String email = usernameField.getText().toString().trim();
-            String password = passwordField.getText().toString().trim();
+        loginButton.setOnClickListener(v -> handleLogin());
+    }
+    private void handleLogin() {
+        String email = usernameField.getText().toString().trim();
+        String password = passwordField.getText().toString().trim();
 
-            if (email.isEmpty() || password.isEmpty()) {
-                Toast.makeText(this, "Please enter email and password", Toast.LENGTH_SHORT).show();
-                return;
+        if (email.isEmpty() || password.isEmpty()) {
+            showToast("Please enter email and password");
+            return;
+        }
+
+        loginButton.setEnabled(false);  // Prevent double clicks
+
+        mAuth.signInWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this, task -> {
+                    loginButton.setEnabled(true);
+                    if (task.isSuccessful()) {
+                        verifyStudentRole(mAuth.getCurrentUser());
+                    } else {
+                        showToast("Authentication failed.");
+                    }
+                });
+    }
+    private void verifyStudentRole(FirebaseUser user) {
+        if (user == null) {
+            showToast("Unexpected error occurred.");
+            return;
+        }
+
+        String userId = user.getUid();
+        studentsRef.child(userId).child("role").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                String role = snapshot.getValue(String.class);
+
+                if ("student".equalsIgnoreCase(role)) {
+                    navigateToStudentMain();
+                } else {
+                    showToast("Access denied! You are not a student.");
+                    mAuth.signOut();
+                }
             }
 
-            mAuth.signInWithEmailAndPassword(email, password)
-                    .addOnCompleteListener(this, task -> {
-                        if (task.isSuccessful()) {
-                            FirebaseUser user = mAuth.getCurrentUser();
-                            if (user != null) {
-                                String userId = user.getUid();
-
-                                // Check if user is actually a student
-                                databaseReference.child(userId).child("role").addListenerForSingleValueEvent(new ValueEventListener() {
-                                    @Override
-                                    public void onDataChange(@NonNull DataSnapshot snapshot) {
-                                        if (snapshot.exists()) {
-                                            String role = snapshot.getValue(String.class);
-                                            if ("student".equals(role)) {
-                                                startActivity(new Intent(StudentLoginActivity.this, StudentMainActivity.class));
-                                            } else {
-                                                Toast.makeText(StudentLoginActivity.this, "Access denied! You are not a student.", Toast.LENGTH_LONG).show();
-                                                FirebaseAuth.getInstance().signOut();  // Logout unauthorized user
-                                            }
-                                        } else {
-                                            Toast.makeText(StudentLoginActivity.this, "Access denied!", Toast.LENGTH_LONG).show();
-                                            FirebaseAuth.getInstance().signOut();
-                                        }
-                                    }
-
-                                    @Override
-                                    public void onCancelled(@NonNull DatabaseError error) {
-                                        Toast.makeText(StudentLoginActivity.this, "Database error!", Toast.LENGTH_SHORT).show();
-                                    }
-                                });
-                            }
-                        } else {
-                            Toast.makeText(StudentLoginActivity.this, "Authentication failed.", Toast.LENGTH_SHORT).show();
-                        }
-                    });
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                showToast("Database error: " + error.getMessage());
+            }
         });
+    }
+    private void navigateToStudentMain() {
+        Intent intent = new Intent(StudentLoginActivity.this, StudentMainActivity.class);
+        startActivity(intent);
+        finish(); // Optional: prevent going back to login screen
+    }
+    private void showToast(String message) {
+        Toast.makeText(StudentLoginActivity.this, message, Toast.LENGTH_SHORT).show();
     }
 }
