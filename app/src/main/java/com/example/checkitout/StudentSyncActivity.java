@@ -39,7 +39,7 @@ public class StudentSyncActivity extends AppCompatActivity {
     private FirebaseAuth mAuth;
     private DatabaseReference studentRef;
 
-    private static final String TAG = "StudentSync";
+        private static final String TAG = "StudentSync";
     private static final int PICK_XLSX_FILE = 1001;
     private List<Student> studentList = new ArrayList<>();
     private ArrayList<String> syncedStudentIds  = new ArrayList<>();
@@ -126,19 +126,52 @@ public class StudentSyncActivity extends AppCompatActivity {
                 return;
             }
 
-            createStudentAccount(student, pending);
+            List<String> signInMethods = task.getResult().getSignInMethods();
+            if (signInMethods != null && !signInMethods.isEmpty()) {
+                // User exists in Auth → now find UID in database
+                findStudentUidByEmail(student, pending);
+            } else {
+                // User doesn't exist → create and add to DB
+                createStudentAccount(student, pending);
+            }
         });
+    }
+
+    private void findStudentUidByEmail(Student student, AtomicInteger pending) {
+        studentRef.orderByChild("email").equalTo(student.email)
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        String existingUid = snapshot.getChildren().iterator().hasNext()
+                                ? snapshot.getChildren().iterator().next().getKey()
+                                : null;
+
+                        if (existingUid != null) {
+                            syncedStudentIds.add(existingUid);
+                        } else {
+                            Log.w(TAG, "User exists in Auth but not in DB");
+                        }
+                        checkComplete(pending);
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {
+                        Log.e(TAG, "Error fetching UID", error.toException());
+                        checkComplete(pending);
+                    }
+                });
     }
 
     private void createStudentAccount(Student student, AtomicInteger pending) {
         mAuth.createUserWithEmailAndPassword(student.email, student.studentId)
                 .addOnCompleteListener(task -> {
-                    if (task.isSuccessful() && mAuth.getCurrentUser() != null) {
-                        syncStudentToDatabase(mAuth.getCurrentUser().getUid(), student, pending);
+                    if (task.isSuccessful() && task.getResult().getUser() != null) {
+                        String uid = task.getResult().getUser().getUid();
+                        uploadStudentData(uid, student, pending);
                     } else {
                         if (task.getException() instanceof FirebaseAuthUserCollisionException) {
-                            Log.d(TAG, "User exists in Auth but not in DB.");
-                            syncStudentToDatabase(null, student, pending);
+                            // Try finding UID in DB since account exists
+                            findStudentUidByEmail(student, pending);
                         } else {
                             Log.e(TAG, "Failed to create user", task.getException());
                             checkComplete(pending);
@@ -147,29 +180,6 @@ public class StudentSyncActivity extends AppCompatActivity {
                 });
     }
 
-    private void syncStudentToDatabase(@Nullable String uid, Student student, AtomicInteger pending) {
-        if (uid != null) {
-            uploadStudentData(uid, student, pending);
-        } else {
-            studentRef.orderByChild("email").equalTo(student.email).addListenerForSingleValueEvent(new ValueEventListener() {
-                @Override
-                public void onDataChange(@NonNull DataSnapshot snapshot) {
-                    String existingUid = snapshot.getChildren().iterator().hasNext()
-                            ? snapshot.getChildren().iterator().next().getKey()
-                            : null;
-
-                    if (existingUid != null) syncedStudentIds.add(existingUid);
-                    checkComplete(pending);
-                }
-
-                @Override
-                public void onCancelled(@NonNull DatabaseError error) {
-                    Log.e(TAG, "Error fetching UID", error.toException());
-                    checkComplete(pending);
-                }
-            });
-        }
-    }
 
     private void uploadStudentData(String uid, Student student, AtomicInteger pending) {
         Map<String, Object> data = new HashMap<>();

@@ -14,19 +14,24 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 public class StudentAdapter extends RecyclerView.Adapter<StudentAdapter.StudentViewHolder> {
-    private Map<String, List<Boolean>> studentList;
-    private DatabaseReference eventRef;
+    private final Map<String, List<Boolean>> studentMap;
+    private final List<String> studentKeys;
+    private final DatabaseReference eventRef;
 
-    public StudentAdapter(Map<String, List<Boolean>> studentList, DatabaseReference eventRef) {
-        this.studentList = studentList;
+    public StudentAdapter(Map<String, List<Boolean>> studentMap, DatabaseReference eventRef) {
+        this.studentMap = studentMap;
+        this.studentKeys = new ArrayList<>(studentMap.keySet());
         this.eventRef = eventRef;
     }
 
@@ -40,71 +45,65 @@ public class StudentAdapter extends RecyclerView.Adapter<StudentAdapter.StudentV
 
     @Override
     public void onBindViewHolder(@NonNull StudentViewHolder holder, int position) {
-        // Get the student ID and the list of booleans (present, otp) from the map
-        String studentId = new ArrayList<>(studentList.keySet()).get(position);
-        List<Boolean> studentStatus = studentList.get(studentId);
+        String studentId = studentKeys.get(position);
+        List<Boolean> status = studentMap.get(studentId);
+        if (status == null || status.size() < 2) return;
 
-        // Fetch the student's name from Firebase
-        DatabaseReference studentRef = FirebaseDatabase.getInstance().getReference().child("Students").child(studentId);
+        boolean isPresent = status.get(0);
+        boolean isOtpSuccess = status.get(1);
 
-        // Fetch the student's name
-        studentRef.child("name").get().addOnCompleteListener(task -> {
-            if (task.isSuccessful() && task.getResult().exists()) {
-                String studentName = task.getResult().getValue(String.class);
-                holder.studentNameTextView.setText(studentName);  // Set the student's name
-            } else {
-                holder.studentNameTextView.setText("Unknown Student");  // Fallback if name not found
-            }
+        holder.attendanceCheckBox.setOnCheckedChangeListener(null);
+        holder.attendanceCheckBox.setChecked(isPresent);
+        holder.otpSuccessCheckBox.setChecked(isOtpSuccess);
+
+        fetchStudentDetailsAndBind(studentId, holder);
+
+        holder.attendanceCheckBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            eventRef.child(studentId).child("present").setValue(isChecked);
         });
+    }
 
-        // Fetch the student's phone number
-        studentRef.child("phoneNumber").get().addOnCompleteListener(task -> {
-            if (task.isSuccessful() && task.getResult().exists()) {
-                String phoneNumber = task.getResult().getValue(String.class);
+    private void fetchStudentDetailsAndBind(String studentId, StudentViewHolder holder) {
+        DatabaseReference studentRef = FirebaseDatabase.getInstance().getReference("Students").child(studentId);
 
-                // Set the button click listener to open the dialer
+        studentRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override public void onDataChange(@NonNull DataSnapshot snapshot) {
+                String name = snapshot.child("name").getValue(String.class);
+                String phone = snapshot.child("phoneNumber").getValue(String.class);
+
+                holder.studentNameTextView.setText(name != null ? name : "Unknown Student");
+
                 holder.callButton.setOnClickListener(v -> {
-                    if (phoneNumber != null && !phoneNumber.isEmpty()) {
-                        Intent dialIntent = new Intent(Intent.ACTION_DIAL);
-                        dialIntent.setData(Uri.parse("tel:" + phoneNumber));
-                        v.getContext().startActivity(dialIntent);  // Use v.getContext() to get the context
+                    if (phone != null && !phone.isEmpty()) {
+                        Intent dialIntent = new Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + phone));
+                        v.getContext().startActivity(dialIntent);
                     } else {
                         Toast.makeText(v.getContext(), "Phone number not available", Toast.LENGTH_SHORT).show();
                     }
                 });
             }
-        });
 
-        // Get the 'present' value from the studentStatus list and set the checkbox
-        boolean isPresent = studentStatus.get(0);  // First boolean is 'present'
-        holder.attendanceCheckBox.setChecked(isPresent);
-
-        boolean isOtpSuccess = studentStatus.get(1);  // Second boolean is 'otp'
-        holder.otpSuccessCheckBox.setChecked(isOtpSuccess);
-
-        // Update attendance status in the Firebase database when the checkbox is clicked
-        holder.attendanceCheckBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            DatabaseReference studentStatusRef = eventRef.child(studentId).child("present");
-            studentStatusRef.setValue(isChecked);
+            @Override public void onCancelled(@NonNull DatabaseError error) {
+                holder.studentNameTextView.setText("Error loading student");
+            }
         });
     }
 
+
     public String getStudentUID(int position) {
-        // Assuming you have a List<Map<String, Object>> or something similar in your adapter
-        // Modify this to match the structure you're using to hold student data
-        Map.Entry<String, List<Boolean>> studentEntry = (Map.Entry<String, List<Boolean>>) studentList.entrySet().toArray()[position];
-        return studentEntry.getKey();  // This returns the studentUID
+        return studentKeys.get(position);
     }
 
     @Override
     public int getItemCount() {
-        return studentList.size();
+        return studentKeys.size();
     }
 
     // Method to delete a student
     public void deleteStudent(int position) {
-        String studentId = new ArrayList<>(studentList.keySet()).get(position);
-        studentList.remove(studentId);
+        String studentId = studentKeys.get(position);
+        studentMap.remove(studentId);
+        studentKeys.remove(position);
         notifyItemRemoved(position);
     }
 
