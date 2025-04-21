@@ -5,7 +5,8 @@
     android:layout_height="wrap_content"
     android:orientation="horizontal"
     android:padding="8dp"
-    android:gravity="center_vertical">
+    android:gravity="center_vertical"
+    android:background="@color/neutral_light">
 
     <!-- Call Button -->
     <ImageButton
@@ -16,7 +17,7 @@
         android:background="?android:attr/selectableItemBackgroundBorderless"
         android:src="@android:drawable/ic_menu_call"
         android:contentDescription="Call student"
-        app:tint="@android:color/holo_blue_dark" />
+        app:tint="@color/primary_dark" />
 
     <!-- Student Name -->
     <TextView
@@ -25,7 +26,8 @@
         android:layout_weight="1"
         android:layout_height="wrap_content"
         android:text="Student Name"
-        android:textSize="16sp" />
+        android:textSize="16sp"
+        android:textColor="@color/primary_dark"/>
 
     <!-- Attendance Checkbox -->
     <CheckBox
@@ -33,7 +35,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="16dp"
-        android:contentDescription="Attendance checkbox" />
+        android:contentDescription="Attendance checkbox"
+        android:buttonTint="@color/primary"/>
 
     <!-- OTP Checkbox with label -->
     <LinearLayout
@@ -47,14 +50,14 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:enabled="false"
-            android:buttonTint="@android:color/holo_green_dark"
+            android:buttonTint="@color/success_green"
             android:contentDescription="OTP success checkbox" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="OTP"
-            android:textColor="@android:color/holo_green_dark"
+            android:textColor="@color/success_green"
             android:textSize="14sp"
             android:paddingStart="4dp" />
     </LinearLayout>

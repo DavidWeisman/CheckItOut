@@ -4,17 +4,23 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp"
+    android:background="@color/neutral_light"
+    android:padding="24dp"
+    android:gravity="center_vertical"
     tools:context=".TeacherMainActivity">
 
-
+    <!-- Event Name Input -->
     <EditText
         android:id="@+id/eventNameEditText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Enter event name"
         android:inputType="text"
-        android:layout_marginBottom="16dp" />
+        android:padding="12dp"
+        android:textColor="@color/neutral_dark"
+        android:backgroundTint="@color/primary_dark"
+        android:textSize="16sp"
+        android:layout_marginBottom="24dp" />
 
     <!-- Add Event Button -->
     <Button
@@ -22,13 +28,28 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Add Event"
-        android:textSize="16sp" />
+        android:textColor="@android:color/black"
+        android:textSize="16sp"
+        android:layout_marginTop="16dp"
+        android:padding="14dp"
+        android:elevation="4dp"
+        android:background="@drawable/rounded_button"
+        android:backgroundTint="@color/primary_light"
+        android:layout_gravity="center" />
 
+    <!-- Open Existing Event Button -->
     <Button
         android:id="@+id/openEventButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Open Existing Event"
-        android:layout_marginTop="10dp"/>
+        android:textColor="@android:color/black"
+        android:textSize="16sp"
+        android:layout_marginTop="16dp"
+        android:padding="14dp"
+        android:elevation="4dp"
+        android:background="@drawable/rounded_button"
+        android:backgroundTint="@color/success_green"
+        android:layout_gravity="center" />
 
 </LinearLayout>

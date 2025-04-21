@@ -2,6 +2,13 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="primary">#009944</color>
+    <color name="primary_light">#C5E99B</color>
+    <color name="primary_dark">#00773D</color>
+    <color name="accent">#F9DC5C</color>
+    <color name="neutral_light">#F5F5F5</color>
+    <color name="neutral_dark">#1D1D1D</color>
+    <color name="success_green">#4CAF50</color>
 
 </resources>
 
