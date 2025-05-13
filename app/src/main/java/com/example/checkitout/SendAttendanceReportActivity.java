@@ -32,14 +32,14 @@ public class SendAttendanceReportActivity extends AppCompatActivity {
 
     private String date;
     private String eventName;
-    private Map<String, String> studentNameMap = new HashMap<>(); // UID -> name
+    private Map<String, String> studentNameMap = new HashMap<>();
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Get date and event name from intent
+
         Intent intent = getIntent();
         date = intent.getStringExtra("date");
         eventName = intent.getStringExtra("eventName");
@@ -85,7 +85,7 @@ public class SendAttendanceReportActivity extends AppCompatActivity {
                             @Override
                             public void onDataChange(@NonNull DataSnapshot studentsSnapshot) {
 
-                                // Create Excel workbook and sheet
+
                                 Workbook workbook = new XSSFWorkbook();
                                 Sheet sheet = workbook.createSheet("Attendance Report");
 
@@ -104,9 +104,9 @@ public class SendAttendanceReportActivity extends AppCompatActivity {
                                 teacherRow.createCell(0).setCellValue("Teacher:");
                                 teacherRow.createCell(1).setCellValue(teacherName != null ? teacherName : teacherId);
 
-                                rowIdx++; // Add an empty row
+                                rowIdx++;
 
-                                // Header row
+
                                 Row header = sheet.createRow(rowIdx++);
                                 header.createCell(0).setCellValue("Student Name");
                                 header.createCell(1).setCellValue("Attendance");
@@ -125,7 +125,6 @@ public class SendAttendanceReportActivity extends AppCompatActivity {
                                     row.createCell(1).setCellValue(present != null && present ? "Present" : "Absent");
                                 }
 
-                                // Save Excel file to external storage
                                 try {
                                     File dir = new File(getExternalFilesDir(null), "Reports");
                                     if (!dir.exists()) {
@@ -241,7 +240,7 @@ public class SendAttendanceReportActivity extends AppCompatActivity {
                         studentNameMap.put(uid, name);
                     }
                 }
-                getReportFromFirebase(); // Now safe to call
+                getReportFromFirebase();
             }
 
             @Override

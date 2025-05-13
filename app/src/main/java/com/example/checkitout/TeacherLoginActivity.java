@@ -49,7 +49,7 @@ public class TeacherLoginActivity extends AppCompatActivity {
             return;
         }
 
-        loginButton.setEnabled(false);  // Prevent double clicks
+        loginButton.setEnabled(false);
 
         mAuth.signInWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this, task -> {
@@ -90,7 +90,7 @@ public class TeacherLoginActivity extends AppCompatActivity {
     private void navigateToStudentMain() {
         Intent intent = new Intent(TeacherLoginActivity.this, TeacherMainActivity.class);
         startActivity(intent);
-        finish(); // Optional: prevent going back to login screen
+        finish();
     }
     private void showToast(String message) {
         Toast.makeText(TeacherLoginActivity.this, message, Toast.LENGTH_SHORT).show();

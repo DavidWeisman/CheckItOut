@@ -7,7 +7,6 @@
     android:padding="24dp"
     android:gravity="center_vertical">
 
-    <!-- Welcome Message -->
     <TextView
         android:id="@+id/studentName"
         android:layout_width="match_parent"
@@ -19,7 +18,6 @@
         android:gravity="center"
         android:layout_marginBottom="32dp" />
 
-    <!-- OTP Input -->
     <EditText
         android:id="@+id/otpEditText"
         android:layout_width="200dp"
@@ -35,7 +33,6 @@
         android:layout_gravity="center_horizontal"
         android:layout_marginBottom="24dp" />
 
-    <!-- Apply Button -->
     <Button
         android:id="@+id/applybtn"
         android:layout_width="match_parent"
@@ -50,7 +47,6 @@
         android:backgroundTint="@color/primary_light"
         android:layout_gravity="center" />
 
-    <!-- Show QR Button -->
     <Button
         android:id="@+id/showQrbrn"
         android:layout_width="match_parent"

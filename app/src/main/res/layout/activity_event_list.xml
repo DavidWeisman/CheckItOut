@@ -6,7 +6,6 @@
     android:layout_height="match_parent"
     tools:context=".EventListActivity">
 
-    <!-- RecyclerView to display list of events -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/eventRecyclerView"
         android:layout_width="0dp"

@@ -54,7 +54,7 @@ public class QRScanner extends AppCompatActivity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == 100) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                startCamera(); // Restart camera if permission is granted
+                startCamera();
             } else {
                 Toast.makeText(this, "Camera permission is required!", Toast.LENGTH_SHORT).show();
             }
@@ -107,9 +107,9 @@ public class QRScanner extends AppCompatActivity {
 
                         // Send the result back to the MainActivity
                         Intent resultIntent = new Intent();
-                        resultIntent.putExtra("QR_RESULT", qrText);  // Put QR text in the intent
-                        setResult(RESULT_OK, resultIntent);  // Set result to be OK
-                        finish();  // Close the QRScanner activity and go back to MainActivity
+                        resultIntent.putExtra("QR_RESULT", qrText);
+                        setResult(RESULT_OK, resultIntent);
+                        finish();
                     }
                 })
                 .addOnFailureListener(e -> Log.e("QRScanner", "Error scanning QR Code: " + e.getMessage()));

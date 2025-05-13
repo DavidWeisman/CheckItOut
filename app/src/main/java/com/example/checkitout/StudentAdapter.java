@@ -99,7 +99,7 @@ public class StudentAdapter extends RecyclerView.Adapter<StudentAdapter.StudentV
         return studentKeys.size();
     }
 
-    // Method to delete a student
+
     public void deleteStudent(int position) {
         String studentId = studentKeys.get(position);
         studentMap.remove(studentId);

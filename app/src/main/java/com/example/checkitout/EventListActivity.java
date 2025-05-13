@@ -39,14 +39,14 @@ public class EventListActivity extends AppCompatActivity {
         mAuth = FirebaseAuth.getInstance();
         FirebaseUser currentUser = mAuth.getCurrentUser();
 
-        // Checking if the user is logged in
+
         if (currentUser == null) {
             Toast.makeText(this, "You need to log in to view events", Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
 
-        // Load the events after user is authenticated
+
         loadEvents();
     }
 
@@ -82,7 +82,7 @@ public class EventListActivity extends AppCompatActivity {
         });
     }
 
-    // This method opens the selected event details
+
     private void openEvent(String date, String eventName) {
         Intent intent = new Intent(this, StudentListActivity.class);
         intent.putExtra("date", date);

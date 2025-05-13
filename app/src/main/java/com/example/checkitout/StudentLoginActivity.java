@@ -89,7 +89,7 @@ public class StudentLoginActivity extends AppCompatActivity {
     private void navigateToStudentMain() {
         Intent intent = new Intent(StudentLoginActivity.this, StudentMainActivity.class);
         startActivity(intent);
-        finish(); // Optional: prevent going back to login screen
+        finish();
     }
     private void showToast(String message) {
         Toast.makeText(StudentLoginActivity.this, message, Toast.LENGTH_SHORT).show();
